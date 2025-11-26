@@ -1,18 +1,78 @@
-# React + Vite
+# 🎮 GameSearch
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> Um catálogo moderno e responsivo para explorar os melhores jogos gratuitos disponíveis no mercado.
 
-Currently, two official plugins are available:
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)
+![Material UI](https://img.shields.io/badge/Material--UI-0081CB?style=for-the-badge&logo=material-ui&logoColor=white)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Sobre o Projeto
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+**GameSearch** é uma Single Page Application (SPA) desenvolvida como parte da disciplina de Desenvolvimento Fullstack. O objetivo da aplicação é oferecer uma interface intuitiva para que usuários possam buscar, filtrar e visualizar detalhes de centenas de jogos *free-to-play*.
 
-Note: This will impact Vite dev & build performances.
+O projeto foca em performance e experiência do usuário (UX), implementando técnicas modernas de otimização de busca e layout responsivo que se adapta de celulares a monitores ultrawide.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Acesse o Projeto
+
+Você pode ver a aplicação rodando em tempo real através dos links abaixo:
+
+- **Link Principal:** [game-search-mu.vercel.app](https://game-search-mu.vercel.app)
+- **Link Alternativo:** [game-search-git-main-kevin-luizs-projects.vercel.app](https://game-search-git-main-kevin-luizs-projects.vercel.app)
+
+---
+
+## API Consumida
+
+Os dados da aplicação são alimentados pela **FreeToGame API**.
+
+- **Fonte:** [FreeToGame API Documentation](https://www.freetogame.com/api-doc)
+- **Descrição:** Uma API pública que fornece acesso a uma vasta base de dados de jogos gratuitos, incluindo informações como título, descrição, gênero, plataforma e imagens.
+
+---
+
+## Tecnologias Utilizadas
+
+- **React.js:** Biblioteca principal para construção da interface.
+- **Vite:** Ferramenta de build para um desenvolvimento rápido e otimizado.
+- **Material UI (MUI):** Biblioteca de componentes para um design system robusto e consistente.
+- **Context API:** Para gerenciamento global de estado dos jogos.
+- **Vercel:** Plataforma utilizada para o deploy e hospedagem.
+
+---
+
+## Funcionalidades Destacadas
+
+### 🔍 Busca Inteligente com Debounce
+Para tornar a pesquisa mais dinâmica e performática, foi implementada a técnica de **Debounce**.
+- **Como funciona:** O sistema detecta quando o usuário está digitando e aguarda **1 segundo** de inatividade antes de realizar a busca automaticamente.
+- **Benefício:** Isso evita filtragens desnecessárias a cada letra digitada, melhorando o desempenho da aplicação e oferecendo uma experiência de uso mais fluida, sem a necessidade de clicar sempre no botão "Buscar".
+
+---
+
+Como rodar localmente
+
+Clone o repositório:
+
+git clone [https://github.com/KevinLuiz10/gameSearch.git](https://github.com/KevinLuiz10/gameSearch.git)
+
+
+Entre na pasta do projeto:
+
+cd GameSearch
+
+
+Instale as dependências:
+
+npm install
+
+
+Rode o servidor de desenvolvimento:
+
+npm run dev
+
+
+Desenvolvido por Kevin Lima e Alexis Liasch para a disciplina de Desenvolvimento Fullstack.
