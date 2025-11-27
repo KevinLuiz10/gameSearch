@@ -41,7 +41,7 @@ const SearchBar = ({ onSearch }) => {
     useEffect(() => {
         const timerDeBusca = setTimeout(() => {
             onSearch(inputText);
-        }, 2000);
+        }, 1000);
         return () => clearTimeout(timerDeBusca);
     }, [inputText, onSearch]);
 
