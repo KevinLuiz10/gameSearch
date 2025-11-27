@@ -13,14 +13,11 @@ const Login = () => {
         e.preventDefault();
         setError('');
 
-        // Chama a função do contexto
         const result = await login(username, password);
 
         if (!result.success) {
             setError(result.message);
         }
-        // Se der sucesso, o AuthContext atualiza o estado 'user', 
-        // e o App.jsx vai trocar a tela automaticamente.
     };
 
     return (
