@@ -7,62 +7,66 @@ export const GameProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const fetchGames = useCallback(async (categories = ['all']) => {
+    const fetchGames = useCallback(async (categories = ['all'], searchTerm = '') => {
         try {
             setLoading(true);
             setError(null);
 
+            const token = localStorage.getItem('token');
 
-            if (categories.includes('all') || categories.length === 0) {
-                const response = await fetch("/api/games");
-                if (!response.ok) throw new Error(`Erro: ${response.status}`);
-                const data = await response.json();
-                setGames(data);
-                return;
+            if (!token) {
+                throw new Error("Usuário não autenticado");
             }
 
-            const requests = categories.map(cat =>
-                fetch(`/api/games?category=${cat}`).then(res => {
-                    if (!res.ok) return [];
-                    return res.json();
-                })
-            );
+            const primaryCategory = Array.isArray(categories) ? categories[0] : categories;
 
-            console.log("Disparando múltiplas requisições para:", categories);
+            const params = new URLSearchParams();
+            if (primaryCategory && primaryCategory !== 'all') {
+                params.append('category', primaryCategory);
+            }
+            if (searchTerm) {
+                params.append('search', searchTerm);
+            }
 
-            const results = await Promise.all(requests);
+            const url = `/api/games?${params.toString()}`;
 
-            const allFetchedGames = results.flat();
-
-            const uniqueGamesMap = new Map();
-            allFetchedGames.forEach(game => {
-                uniqueGamesMap.set(game.id, game);
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
             });
 
-            const uniqueGamesList = Array.from(uniqueGamesMap.values());
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error("Sessão expirada. Faça login novamente.");
+                }
+                throw new Error(`Erro do servidor: ${response.status}`);
+            }
 
-            setGames(uniqueGamesList);
+            const data = await response.json();
+            setGames(data);
 
         } catch (err) {
-            console.error("Erro ao buscar jogos:", err);
-            setError("Falha ao carregar a lista de jogos. Tente novamente.");
+            console.error("Erro no frontend:", err);
+            if (err.message.includes("Sessão expirada")) {
+                localStorage.removeItem('token');
+                window.location.reload(); // Força recarregar para cair no login
+            }
+            setError(err.message || "Falha na comunicação com o servidor.");
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // Primeira busca
+    // Busca inicial ao carregar a página
     useEffect(() => {
-        fetchGames(['all']);
+        fetchGames();
     }, [fetchGames]);
 
-
-    const applyFilter = (selectedCategories) => {
-        const categoriesArray = Array.isArray(selectedCategories)
-            ? selectedCategories
-            : [selectedCategories];
-
-        fetchGames(categoriesArray);
+    const applyFilter = (categories, searchTerm) => {
+        fetchGames(categories, searchTerm);
     };
 
     return (

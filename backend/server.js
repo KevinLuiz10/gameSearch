@@ -11,15 +11,22 @@ dotenv.config();
 
 const app = express();
 
+// --- CONFIGURAÇÕES DO EXPRESS ---
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/auth', authRoutes);   // http://localhost:3000/api/auth/login
-app.use('/api/games', gameRoutes);  // http://localhost:3000/api/games (GET)
+// --- DEFINIÇÃO DAS ROTAS ---
+// Rota de Autenticação (Login/Logout)
+// Endpoints: POST /api/auth/login, POST /api/auth/logout
+app.use('/api/auth', authRoutes);
 
-// Teste simples para ver se o servidor está no ar
+// Rota de Jogos (Busca/Cache)
+// Endpoint: GET /api/games (Protegida por Token)
+app.use('/api/games', gameRoutes);
+
+// Rota de teste simples na raiz
 app.get('/', (req, res) => {
-    res.send('Backend do GameSearch está rodando com sucesso!');
+    res.send('Backend do GameSearch está rodando!');
 });
 
 // --- INICIALIZAÇÃO DO SERVIDOR ---
@@ -32,9 +39,6 @@ app.listen(PORT, async () => {
     try {
         const [rows] = await db.query('SELECT 1');
         console.log('✅ Conexão com MySQL bem-sucedida!');
-        console.log('📡 Rotas disponíveis:');
-        console.log('   - POST /api/auth/login');
-        console.log('   - GET  /api/games');
     } catch (error) {
         console.error('❌ Erro fatal ao conectar no banco:', error.message);
         console.error('   -> Verifique se o MySQL está ligado e se o .env está correto.');

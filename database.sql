@@ -23,3 +23,13 @@ CREATE TABLE IF NOT EXISTS games (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS token_blacklist (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    token VARCHAR(500) NOT NULL,
+    expiration DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO users (username, password) 
+VALUES ('admin', '$2b$10$0RWGfC.RMZeQwQb4wfSfdOJ4RIjUmzVRRqWPiF1fy4ZWJ36taeRT.'); 

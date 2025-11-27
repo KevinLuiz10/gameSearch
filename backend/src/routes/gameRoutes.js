@@ -1,30 +1,31 @@
 const express = require('express');
 const router = express.Router();
+const verifyToken = require('../config/auth');
 
-// --- ESTRATÉGIA DE CACHE EM MEMÓRIA ---
 let gameCache = {};
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos (em milissegundos)
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos em milissegundos
 
-// Rota GET /api/games
-router.get('/', async (req, res) => {
+// GET /api/games
+// Uso do arquivo auth/auth.js, para se certificar de que o token ainda é válido.
+router.get('/', verifyToken, async (req, res) => {
     try {
-        // Recebe os parâmetros enviados pelo Frontend
         const { category, search } = req.query;
 
-        // Define a chave do cache (ex: 'all' ou 'mmorpg')
+        // Define a chave do cache (ex: 'all', 'shooter')
         const cacheKey = category || 'all';
         const now = Date.now();
 
         let gamesData = [];
 
+        // VERIFICAÇÃO DE CACHE
         if (gameCache[cacheKey] && (now - gameCache[cacheKey].timestamp < CACHE_DURATION)) {
             console.log(`⚡ Usando Cache do Servidor para: ${cacheKey}`);
             gamesData = gameCache[cacheKey].data;
         } else {
-            console.log(`Buscando na API Externa (FreeToGame): ${cacheKey}`);
+            // BUSCA NA API EXTERNA
+            console.log(`🌐 Buscando na API Externa: ${cacheKey}`);
 
             let url = 'https://www.freetogame.com/api/games';
-
             if (category && category !== 'all') {
                 url += `?category=${category}`;
             }
@@ -32,22 +33,21 @@ router.get('/', async (req, res) => {
             const response = await fetch(url);
 
             if (!response.ok) {
-                if (response.status === 404) {
-                    return res.json([]);
-                }
-                throw new Error(`Erro na API externa: ${response.status}`);
+                // Se a categoria não existir (404), retornamos lista vazia sem erro
+                if (response.status === 404) return res.json([]);
+                throw new Error(`Erro API externa: ${response.status}`);
             }
 
             gamesData = await response.json();
 
-            // SALVA NO CACHE DO SERVIDOR
+            // ATUALIZA O CACHE
             gameCache[cacheKey] = {
                 data: gamesData,
                 timestamp: now
             };
         }
 
-        // Se o usuário solicitou os dados com alguma filtragem, filtramos os dados antes de retornar
+        // FILTRO DE TEXTO (SEARCH) NO BACKEND
         if (search) {
             const termo = search.toLowerCase();
             gamesData = gamesData.filter(game =>
