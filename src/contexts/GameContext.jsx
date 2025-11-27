@@ -1,45 +1,72 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useCallback } from "react";
 
 export const GameContext = createContext();
 
 export const GameProvider = ({ children }) => {
-    const [games, setGames] = useState([]);      // Lista de jogos
-    const [loading, setLoading] = useState(true); // Status de carregamento
-    const [error, setError] = useState(null);     // Mensagem de erro
+    const [games, setGames] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchGames = async () => {
-            try {
-                setLoading(true);
+    const fetchGames = useCallback(async (categories = ['all']) => {
+        try {
+            setLoading(true);
+            setError(null);
 
-                //const url = "https://api.allorigins.win/raw?url=https://www.freetogame.com/api/games";
-                //const url = "https://www.freetogame.com/api/games";
 
+            if (categories.includes('all') || categories.length === 0) {
                 const response = await fetch("/api/games");
-
-                if (!response.ok) {
-                    throw new Error(`Erro na conexão: ${response.status}`);
-                }
-
+                if (!response.ok) throw new Error(`Erro: ${response.status}`);
                 const data = await response.json();
-
-                setGames(data); // Salvar os jogos no estado
-                setError(null); // Limpar erros antigos
-
-            } catch (err) {
-                console.error("Erro ao buscar jogos:", err);
-                setError("Falha ao carregar a lista de jogos. Verifique sua conexão.");
-            } finally {
-                setLoading(false); //Retirar o loading
+                setGames(data);
+                return;
             }
-        };
 
-        fetchGames();
+            const requests = categories.map(cat =>
+                fetch(`/api/games?category=${cat}`).then(res => {
+                    if (!res.ok) return [];
+                    return res.json();
+                })
+            );
+
+            console.log("Disparando múltiplas requisições para:", categories);
+
+            const results = await Promise.all(requests);
+
+            const allFetchedGames = results.flat();
+
+            const uniqueGamesMap = new Map();
+            allFetchedGames.forEach(game => {
+                uniqueGamesMap.set(game.id, game);
+            });
+
+            const uniqueGamesList = Array.from(uniqueGamesMap.values());
+
+            setGames(uniqueGamesList);
+
+        } catch (err) {
+            console.error("Erro ao buscar jogos:", err);
+            setError("Falha ao carregar a lista de jogos. Tente novamente.");
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
+    // Primeira busca
+    useEffect(() => {
+        fetchGames(['all']);
+    }, [fetchGames]);
+
+
+    const applyFilter = (selectedCategories) => {
+        const categoriesArray = Array.isArray(selectedCategories)
+            ? selectedCategories
+            : [selectedCategories];
+
+        fetchGames(categoriesArray);
+    };
 
     return (
-        <GameContext.Provider value={{ games, loading, error }}>
+        <GameContext.Provider value={{ games, loading, error, applyFilter }}>
             {children}
         </GameContext.Provider>
     );
