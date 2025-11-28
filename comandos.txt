@@ -1,0 +1,6 @@
+//Derruba, recompila, e sobe novamente
+docker-compose up -d --build backend
+docker-compose up -d --build frontend
+
+//visualizar logs e continuar rastreando os logs em tempo real
+docker-compose logs -f backend

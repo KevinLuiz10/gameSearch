@@ -1,28 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../config/auth');
+const redisClient = require('../config/redis');
 
-let gameCache = {};
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos em milissegundos
+const CACHE_DURATION = 60;
 
 // GET /api/games
-// Uso do arquivo auth/auth.js, para se certificar de que o token ainda é válido.
 router.get('/', verifyToken, async (req, res) => {
     try {
         const { category, search } = req.query;
 
-        // Define a chave do cache (ex: 'all', 'shooter')
-        const cacheKey = category || 'all';
-        const now = Date.now();
+        const cacheKey = `games_${category || 'all'}`;
 
         let gamesData = [];
 
-        // VERIFICAÇÃO DE CACHE
-        if (gameCache[cacheKey] && (now - gameCache[cacheKey].timestamp < CACHE_DURATION)) {
-            console.log(`⚡ Usando Cache do Servidor para: ${cacheKey}`);
-            gamesData = gameCache[cacheKey].data;
-        } else {
-            // BUSCA NA API EXTERNA
+        // TENTA BUSCAR NO REDIS
+        try {
+            const cachedData = await redisClient.get(cacheKey);
+
+            if (cachedData) {
+                console.log(`⚡ Usando Cache do Redis para: ${cacheKey}`);
+                gamesData = JSON.parse(cachedData); // Converte string volta para JSON
+            }
+        } catch (redisError) {
+            console.error('Erro ao ler do Redis (ignorando e buscando da API):', redisError);
+            // Se o Redis falhar, o código continua e busca na API
+        }
+
+        // SE NÃO ACHOU NO CACHE, BUSCA NA API EXTERNA
+        if (!gamesData || gamesData.length === 0) {
             console.log(`🌐 Buscando na API Externa: ${cacheKey}`);
 
             let url = 'https://www.freetogame.com/api/games';
@@ -33,21 +39,23 @@ router.get('/', verifyToken, async (req, res) => {
             const response = await fetch(url);
 
             if (!response.ok) {
-                // Se a categoria não existir (404), retornamos lista vazia sem erro
                 if (response.status === 404) return res.json([]);
                 throw new Error(`Erro API externa: ${response.status}`);
             }
 
             gamesData = await response.json();
 
-            // ATUALIZA O CACHE
-            gameCache[cacheKey] = {
-                data: gamesData,
-                timestamp: now
-            };
+            try {
+                if (gamesData.length > 0) {
+                    await redisClient.set(cacheKey, JSON.stringify(gamesData), {
+                        EX: CACHE_DURATION
+                    });
+                }
+            } catch (redisSaveError) {
+                console.error('Erro ao salvar no Redis:', redisSaveError);
+            }
         }
 
-        // FILTRO DE TEXTO (SEARCH) NO BACKEND
         if (search) {
             const termo = search.toLowerCase();
             gamesData = gamesData.filter(game =>
