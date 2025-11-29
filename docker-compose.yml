@@ -41,6 +41,8 @@ services:
       REDIS_HOST: redis
       PORT: 3000
       JWT_SECRET: supersecretakey
+    volumes:
+      - ./logs:/app/logs
 
   # 4. Frontend
   frontend:

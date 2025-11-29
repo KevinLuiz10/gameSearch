@@ -3,6 +3,8 @@ const router = express.Router();
 const verifyToken = require('../config/auth');
 const redisClient = require('../config/redis');
 const db = require('../config/db');
+// Importação atualizada: desestruturamos para pegar os loggers específicos
+const { logger, searchLogger, postLogger } = require('../config/logger');
 
 const CACHE_DURATION = 60; // 60 segundos de cache
 
@@ -24,42 +26,44 @@ const fetchLocalGames = async (category, search) => {
             params.push(`%${search}%`);
         }
 
-        // Ordena pelos mais recentes primeiro
         sql += ' ORDER BY created_at DESC';
 
         const [rows] = await db.execute(sql, params);
 
         return rows;
     } catch (error) {
-        console.error('Erro ao buscar jogos locais:', error);
+        logger.error(`Erro ao buscar jogos locais: ${error.message}`);
         return [];
     }
 };
 
-// GET /api/games (Busca Unificada)
+// GET /api/games
 router.get('/', verifyToken, async (req, res) => {
     try {
         const { category, search } = req.query;
+        const userId = req.user.id; // ID do usuário que buscou (vem do token)
 
-        // 1. NORMALIZAÇÃO DAS CATEGORIAS
+        // --- LOG DE BUSCA (Arquivo search_history.log) ---
+        searchLogger.info(`User ID: ${userId} | Termo: "${search || ''}" | Categoria: "${category || 'all'}"`);
+
         let categoriesList = [];
         if (category && category !== 'all') {
             categoriesList = category.split(',').map(c => c.trim()).filter(c => c);
         }
         const sortedCats = categoriesList.length > 0 ? categoriesList.sort().join(',') : 'all';
-        const cacheKey = `games_${sortedCats}_${search || ''}`; // Inclui a busca na chave do cache
+        const cacheKey = `games_${sortedCats}_${search || ''}`;
 
         let gamesData = [];
 
-        // 2. TENTA BUSCAR NO REDIS
+        // TENTA BUSCAR NO REDIS
         try {
             const cachedData = await redisClient.get(cacheKey);
             if (cachedData) {
-                console.log(`⚡ Usando Cache do Redis para: ${cacheKey}`);
+                logger.info(`⚡ Usando Cache do Redis para: ${cacheKey}`);
                 return res.json(JSON.parse(cachedData));
             }
         } catch (redisError) {
-            console.error('Erro Redis:', redisError);
+            logger.error(`Erro Redis: ${redisError.message}`);
         }
 
         console.log(`Realizando requisição externa (API + DB): ${cacheKey}`);
@@ -94,7 +98,7 @@ router.get('/', verifyToken, async (req, res) => {
         //BUSCA NO BANCO DE DADOS
         const [externalGames, localGames] = await Promise.all([
             fetchExternal(),
-            fetchLocalGames(sortedCats === 'all' ? null : sortedCats, search) // Passa params para o SQL
+            fetchLocalGames(sortedCats === 'all' ? null : sortedCats, search)
         ]);
 
         // UNIFICAÇÃO E EXLUSÃO SE TIVER TÍTULO DUPLICADO
@@ -124,12 +128,12 @@ router.get('/', verifyToken, async (req, res) => {
                     EX: CACHE_DURATION
                 });
             }
-        } catch (e) { console.error('Erro salvar Redis:', e); }
+        } catch (e) { logger.error(`Erro salvar Redis: ${e.message}`); }
 
         res.json(gamesData);
 
     } catch (error) {
-        console.error('Erro rota games:', error);
+        logger.error(`Erro rota games: ${error.message}`);
         res.status(500).json({ message: 'Erro interno ao buscar jogos.' });
     }
 });
@@ -166,11 +170,14 @@ router.post('/', verifyToken, async (req, res) => {
 
         const newGameId = result.insertId;
 
+        // --- LOG DE POSTAGEM (Arquivo post_history.log) ---
+        postLogger.info(`User ID: ${userId} | Novo Jogo ID: ${newGameId} | Título: "${title}" | Gênero: "${genre}"`);
+
         // LIMPEZA DE CACHE QUANDO OCORRE UMA INCLUSÃO
         await redisClient.del('games_all_');
         if (genre) await redisClient.del(`games_${genre.toLowerCase()}_`);
 
-        console.log(`✅ Jogo inserido: ID ${newGameId} - ${title}`);
+        // logger.info(`✅ Jogo inserido: ID ${newGameId} - ${title}`);
 
         res.status(201).json({
             message: 'Jogo cadastrado com sucesso!',
@@ -178,7 +185,7 @@ router.post('/', verifyToken, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Erro ao inserir jogo:', error);
+        logger.error(`Erro ao inserir jogo: ${error.message}`);
         res.status(500).json({ message: 'Erro ao cadastrar jogo.' });
     }
 });

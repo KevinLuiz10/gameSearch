@@ -4,3 +4,10 @@ docker-compose up -d --build frontend
 
 //visualizar logs e continuar rastreando os logs em tempo real
 docker-compose logs -f backend
+
+//Acessar container do banco de dados e excluir dados da tabela games
+docker exec -it projeto_db mysql -u root -p gamesearch_db
+rootpassword
+DELETE FROM games;
+exit
+
