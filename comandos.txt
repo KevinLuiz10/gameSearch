@@ -1,3 +1,16 @@
+//Buildar e subir todas as imagens docker
+NO WINDOWS
+    .\start.bat
+
+NO LINUX
+    dar permissão de execução
+        chmod +x start.sh
+    Executar
+        ./start.sh
+
+Se der erro
+dos2unix start.sh
+
 //Derruba, recompila, e sobe novamente
 docker-compose up -d --build backend
 docker-compose up -d --build frontend
