@@ -1,6 +1,9 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useContext } from "react";
 
 export const AuthContext = createContext();
+
+// Hook personalizado para facilitar o uso em outros componentes (como o Header)
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -47,11 +50,29 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Função de Logout
-    const logout = () => {
+    const logout = async () => {
+        const tokenToInvalidate = token || localStorage.getItem("token");
+
+        if (tokenToInvalidate) {
+            try {
+                await fetch("/api/auth/logout", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${tokenToInvalidate}`
+                    },
+                });
+            } catch (error) {
+                console.error("Erro ao notificar logout ao servidor (token pode não ter sido invalidado no DB):", error);
+            }
+        }
+
         setUser(null);
         setToken(null);
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+
+        window.location.reload()
     };
 
     return (
