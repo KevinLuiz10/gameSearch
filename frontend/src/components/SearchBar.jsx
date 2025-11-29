@@ -42,7 +42,7 @@ const SearchBar = () => {
         const timerDeBusca = setTimeout(() => {
             const categoryQuery = selectedCategories.length > 0 ? selectedCategories.join(',') : '';
 
-            console.log(`📡 Disparando busca: Texto="${inputText}", Cats="${categoryQuery}"`);
+            console.log(`- Disparando busca para o BackEnd: Texto="${inputText}", Categorias="${categoryQuery}"`);
             fetchGames(inputText, categoryQuery);
 
         }, 1000);

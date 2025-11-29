@@ -1,0 +1,35 @@
+--ENDPOINT INSERÇÃO
+---POST /api/games
+localhost:3000/api/games
+
+Necessário token no cabeçalho
+{
+  "title": "Meu Jogo Incrível",
+  "short_description": "Um jogo RPG feito na aula de Fullstack.",
+  "game_url": "https://meujogo.com",
+  "genre": "MMORPG",
+  "platform": "PC (Windows)",
+  "thumbnail": "https://www.freetogame.com/g/540/thumbnail.jpg"
+}
+--------------------------------------------------------------------------------------------
+--ENDPOINT DE BUSCA DE JOGOS
+---GET /api/games
+localhost:3000/api/games
+
+Necessário token no cabeçalho
+--------------------------------------------------------------------------------------------
+--ENDPOINT DE LOGIN (OBTENÇÃO DO TOKEN)
+---POST /api/auth/login
+localhost:3000/api/auth/login
+
+{
+    "username": "admin",
+    "password": "admin"
+}
+--------------------------------------------------------------------------------------------
+--ENDPOINT DE LOGOUT
+---POST /api/auth/logout
+localhost:3000/api/auth/logout
+
+Necessário token no cabeçalho
+--------------------------------------------------------------------------------------------
