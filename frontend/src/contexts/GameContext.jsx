@@ -1,77 +1,62 @@
-import { createContext, useState, useEffect, useCallback } from "react";
+import { createContext, useState, useContext } from 'react';
 
-export const GameContext = createContext();
+const GameContext = createContext();
+
+export const useGame = () => useContext(GameContext);
 
 export const GameProvider = ({ children }) => {
     const [games, setGames] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const fetchGames = useCallback(async (categories = ['all'], searchTerm = '') => {
+    const fetchGames = async (query = '', category = '') => {
+        setLoading(true);
+        setError(null);
+
         try {
-            setLoading(true);
-            setError(null);
+            let url = '/api/games?';
 
-            const token = localStorage.getItem('token');
-
-            if (!token) {
-                throw new Error("Usuário não autenticado");
+            if (category && category !== 'all') {
+                url += `category=${category}&`;
             }
 
-            const primaryCategory = Array.isArray(categories) ? categories[0] : categories;
-
-            const params = new URLSearchParams();
-            if (primaryCategory && primaryCategory !== 'all') {
-                params.append('category', primaryCategory);
-            }
-            if (searchTerm) {
-                params.append('search', searchTerm);
+            if (query) {
+                url += `search=${query}&`;
             }
 
-            const url = `/api/games?${params.toString()}`;
+            url += `_t=${Date.now()}`;
 
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
             if (!response.ok) {
-                if (response.status === 401 || response.status === 403) {
-                    throw new Error("Sessão expirada. Faça login novamente.");
+                if (response.status === 401) {
+                    throw new Error('Não autorizado. Faça login novamente.');
                 }
-                throw new Error(`Erro do servidor: ${response.status}`);
+                throw new Error('Erro ao buscar jogos');
             }
 
             const data = await response.json();
             setGames(data);
 
         } catch (err) {
-            console.error("Erro no frontend:", err);
-            if (err.message.includes("Sessão expirada")) {
-                localStorage.removeItem('token');
-                window.location.reload(); // Força recarregar para cair no login
-            }
-            setError(err.message || "Falha na comunicação com o servidor.");
+            console.error(err);
+            setError(err.message);
         } finally {
             setLoading(false);
         }
-    }, []);
-
-    // Busca inicial ao carregar a página
-    useEffect(() => {
-        fetchGames();
-    }, [fetchGames]);
-
-    const applyFilter = (categories, searchTerm) => {
-        fetchGames(categories, searchTerm);
     };
 
     return (
-        <GameContext.Provider value={{ games, loading, error, applyFilter }}>
+        <GameContext.Provider value={{ games, loading, error, fetchGames, setGames }}>
             {children}
         </GameContext.Provider>
     );
 };
+
+export default GameContext;

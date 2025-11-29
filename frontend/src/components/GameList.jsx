@@ -1,44 +1,45 @@
-import React, { useContext, useMemo, useState, useEffect } from 'react';
-import { GameContext } from '../contexts/GameContext';
-import GameCard from './GameCard';
+import React, { useState, useEffect } from 'react';
+import { useGame } from '../contexts/GameContext.jsx';
+import GameCard from './GameCard.jsx';
 import { Typography, CircularProgress, Box, Pagination, Stack } from '@mui/material';
 
 const GameList = ({ searchTerm }) => {
-    const { games, loading, error } = useContext(GameContext);
+    const { games, loading, error, fetchGames } = useGame();
 
     // --- CONFIGURAÇÃO DA PAGINAÇÃO ---
-    const ITEMS_PER_PAGE = 12; // 12 jogos (3 linhas de 4 colunas)
+    const ITEMS_PER_PAGE = 12;
     const [page, setPage] = useState(1);
 
-    // Filtra os jogos (como antes)
-    const filteredGames = useMemo(() => {
-        if (!searchTerm) return games;
-        return games.filter((game) =>
-            game.title.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [games, searchTerm]);
+    useEffect(() => {
+        // Debounce: Espera o usuário parar de digitar por 500ms antes de chamar o servidor
+        const timer = setTimeout(() => {
+            fetchGames(searchTerm);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+
+    const displayGames = games || [];
 
     // --- EFEITO: RESETAR PÁGINA ---
-    // Se o usuário pesquisar algo novo, volta para a página 1 automaticamente
     useEffect(() => {
         setPage(1);
     }, [searchTerm]);
 
-    // --- CÁLCULO DA FATIA (SLICE) ---
-    // Calcula quais jogos mostrar na página atual
+
     const startIndex = (page - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    const currentGames = filteredGames.slice(startIndex, endIndex);
+    const currentGames = displayGames.slice(startIndex, endIndex);
 
-    // Calcula o total de páginas para o componente do MUI saber até onde ir
-    const totalPages = Math.ceil(filteredGames.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(displayGames.length / ITEMS_PER_PAGE);
 
-    // Função para mudar de página e subir a tela suavemente
     const handlePageChange = (event, value) => {
         setPage(value);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    // Mostra loading enquanto o backend (ou redis) não responde
     if (loading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
@@ -60,13 +61,13 @@ const GameList = ({ searchTerm }) => {
     return (
         <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 4 }}>
 
-            {filteredGames.length === 0 ? (
+            {displayGames.length === 0 ? (
                 <Typography variant="h6" align="center" color="textSecondary" sx={{ mt: 5 }}>
-                    Nenhum jogo encontrado.
+                    Nenhum jogo encontrado para "{searchTerm}".
                 </Typography>
             ) : (
                 <>
-                    {/* A LISTA DE JOGOS (Agora mostrando 'currentGames' e não todos) */}
+                    {/* A LISTA DE JOGOS */}
                     <Box
                         sx={{
                             display: 'grid',
@@ -98,7 +99,7 @@ const GameList = ({ searchTerm }) => {
                                 showLastButton
                             />
                             <Typography variant="caption" color="text.secondary">
-                                Mostrando {startIndex + 1}-{Math.min(endIndex, filteredGames.length)} de {filteredGames.length} jogos
+                                Mostrando {startIndex + 1}-{Math.min(endIndex, displayGames.length)} de {displayGames.length} jogos
                             </Typography>
                         </Stack>
                     )}

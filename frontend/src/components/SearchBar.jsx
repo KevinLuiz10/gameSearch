@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     TextField,
@@ -16,7 +16,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { GameContext } from '../contexts/GameContext';
+import { useGame } from '../contexts/GameContext.jsx';
 
 const CATEGORIES = [
     "shooter", "mmorpg", "strategy", "moba", "racing", "sports",
@@ -29,25 +29,35 @@ const CATEGORIES = [
     "horror", "mmorts"
 ];
 
-const SearchBar = ({ onSearch }) => {
+const SearchBar = () => {
     const [inputText, setInputText] = useState('');
     const [showFilter, setShowFilter] = useState(false);
     const [error, setError] = useState(false);
-
     const [selectedCategories, setSelectedCategories] = useState([]);
 
-    const { applyFilter } = useContext(GameContext);
+    const { fetchGames } = useGame();
+
 
     useEffect(() => {
         const timerDeBusca = setTimeout(() => {
-            onSearch(inputText);
+            const categoryQuery = selectedCategories.length > 0 ? selectedCategories.join(',') : '';
+
+            console.log(`📡 Disparando busca: Texto="${inputText}", Cats="${categoryQuery}"`);
+            fetchGames(inputText, categoryQuery);
+
         }, 1000);
+
         return () => clearTimeout(timerDeBusca);
-    }, [inputText, onSearch]);
+    }, [inputText, selectedCategories]);
+
+    const triggerSearchNow = () => {
+        const categoryQuery = selectedCategories.length > 0 ? selectedCategories.join(',') : '';
+        fetchGames(inputText, categoryQuery);
+    };
 
     const handleSearchClick = () => {
         setError(false);
-        onSearch(inputText);
+        triggerSearchNow();
     };
 
     const handleKeyPress = (e) => {
@@ -64,7 +74,6 @@ const SearchBar = ({ onSearch }) => {
         }
 
         setSelectedCategories(newSelection);
-        applyFilter(newSelection);
     };
 
     return (
@@ -179,7 +188,7 @@ const SearchBar = ({ onSearch }) => {
                                     startIcon={<DeleteIcon />}
                                     onClick={() => {
                                         setSelectedCategories([]);
-                                        applyFilter([]);
+                                        // A limpeza dispara o useEffect, que chama o backend sem filtros
                                     }}
                                     sx={{
                                         textTransform: 'none',
