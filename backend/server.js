@@ -4,6 +4,7 @@ const compression = require('compression');
 const dotenv = require('dotenv');
 const db = require('./src/config/db');
 const rateLimit = require('express-rate-limit');
+const xss = require('xss');
 
 // --- IMPORTAÇÃO DAS ROTAS ---
 const authRoutes = require('./src/routes/authRoutes');
@@ -16,6 +17,34 @@ const app = express();
 app.use(compression());
 app.use(cors());
 app.use(express.json());
+
+// MIDDLEWARE GLOBAL XSS
+const cleanData = (data) => {
+    if (!data) return data;
+    
+    // Se for texto, limpa o HTML
+    if (typeof data === 'string') return xss(data);
+    
+    // Se for lista (array), limpa item por item
+    if (Array.isArray(data)) return data.map(cleanData);
+    
+    // Se for objeto (JSON), limpa chave por chave
+    if (typeof data === 'object') {
+        Object.keys(data).forEach(key => {
+            data[key] = cleanData(data[key]);
+        });
+    }
+    return data;
+};
+
+// Aplica a limpeza em tudo que entra no servidor
+app.use((req, res, next) => {
+    if (req.body) req.body = cleanData(req.body);
+    if (req.query) req.query = cleanData(req.query);
+    if (req.params) req.params = cleanData(req.params);
+    next();
+});
+// ------------------------------------------------
 
 // CONFIGURAÇÃO DO RATE LIMIT
 // Define que um mesmo IP só pode fazer 100 requisições a cada 15 minutos.
